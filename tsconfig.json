@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "outDir": "./dist",
+    "target": "ES2021"
+  },
+  "include": [
+    "*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/test"
+  ],
+}
