@@ -14,7 +14,14 @@ wsServer.on('connection', (ws) => {
 
     switch (request.type) {
       case 'reg':
-        registerUser(message, ws);
+        registerUser(message, ws, userId);
+        ws.send(
+          JSON.stringify({
+            type: 'update_winners',
+            data: JSON.stringify([]),
+            id: 0,
+          })
+        );
 
         break;
 

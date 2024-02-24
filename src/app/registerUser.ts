@@ -1,15 +1,13 @@
-import { randomUUID } from 'crypto';
-import { USERS } from '../data/user';
-import { IUser } from '../interface/user.interface';
-import { RawData } from 'ws';
+import { USERS } from '../data/data';
+import { IUser } from '../interface/interface';
+import WebSocket, { RawData } from 'ws';
 
-export function registerUser(message: RawData, ws: import('ws')) {
+export function registerUser(message: RawData, ws: WebSocket, userId: string) {
   const messageString = message.toString('utf-8');
   const jsonObject = JSON.parse(messageString);
   const { data } = jsonObject;
   const userName = JSON.parse(data).name;
   const password = JSON.parse(data).password;
-  const userId = randomUUID();
 
   const existingUser = USERS.find((user) => user.name === userName);
 
@@ -31,8 +29,9 @@ export function registerUser(message: RawData, ws: import('ws')) {
   }
 
   const newUser: IUser = {
-    id: userId,
     name: userName,
+    index: userId,
+    wins: 0,
     password: password,
   };
 
