@@ -7,11 +7,11 @@ export interface IUser {
 
 export interface IRoomUser {
   name: string;
-  index: number;
+  index: string;
 }
 
 export interface IRoom {
-  roomId: number;
+  roomId: string;
   roomUsers: IRoomUser[];
 }
 
