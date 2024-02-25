@@ -1,14 +1,24 @@
 import { WebSocketServer } from 'ws';
 import { randomUUID } from 'crypto';
 import { registerUser } from '../app/registerUser';
-import { ROOMS, USERS, SHIPS } from '../data/data';
-import { IShip } from '../interface/interface';
+import { ROOMS, USERS, SHIPS, CLIENTS } from '../data/data';
+import { IClients, IExtendedWebSocket, IShip } from '../interface/interface';
+import { updateRooms } from '../app/updateRooms';
+import { updateViewRooms } from '../app/updateViewRooms';
+import { createNewRoom } from '../app/createRoom';
 
 const wsServer = new WebSocketServer({ port: 3000 });
 
 wsServer.on('connection', (ws) => {
   const userId = randomUUID();
   console.log('New connected', userId);
+
+  const socket: IExtendedWebSocket = ws as IExtendedWebSocket;
+  socket.id = userId;
+  const clientObj: IClients = { client: [socket] };
+  CLIENTS.push(clientObj);
+
+  console.log(CLIENTS);
 
   ws.on('message', (message) => {
     const request = JSON.parse(String(message));
@@ -24,35 +34,19 @@ wsServer.on('connection', (ws) => {
             id: 0,
           })
         );
-        ws.send(
-          JSON.stringify({
-            type: 'update_room',
-            data: JSON.stringify(ROOMS),
-            id: 0,
-          })
-        );
+
+        CLIENTS.forEach((clientObj) => {
+          clientObj.client.forEach((client) => {
+            client.send(updateRooms());
+          });
+        });
 
         break;
 
       case 'create_room':
         console.log('room');
-        ROOMS.push({
-          roomId: randomUUID(),
-          roomUsers: [
-            {
-              name: USERS[0].name,
-              index: USERS[0].index,
-            },
-          ],
-        });
-
-        const updateRoom = JSON.stringify({
-          type: 'update_room',
-          data: JSON.stringify(ROOMS),
-          id: 0,
-        });
-
-        ws.send(updateRoom);
+        createNewRoom(socket);
+        updateViewRooms();
         break;
 
       case 'add_user_to_room':
@@ -61,7 +55,10 @@ wsServer.on('connection', (ws) => {
         const roomId = roomInfo.indexRoom;
         console.log(roomId);
         const room = ROOMS.find((item) => item.roomId === roomId);
-        room?.roomUsers.push({ name: USERS[1].name, index: USERS[1].index });
+        room?.roomUsers.push({
+          name: USERS[0].name,
+          index: USERS[0].index,
+        });
 
         const updateUserInRoom = JSON.stringify({
           type: 'update_room',
@@ -120,7 +117,5 @@ wsServer.on('connection', (ws) => {
       default:
         console.log('Test');
     }
-
-    // console.log(jsonObject);
   });
 });

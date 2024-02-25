@@ -1,3 +1,5 @@
+import WebSocket from 'ws';
+
 export interface IUser {
   name: string;
   password: string;
@@ -28,4 +30,12 @@ export interface IShip {
   direction: boolean;
   length: number;
   type: string;
+}
+
+export interface IExtendedWebSocket extends WebSocket {
+  id: string;
+}
+
+export interface IClients {
+  client: IExtendedWebSocket[];
 }
