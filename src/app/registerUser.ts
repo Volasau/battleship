@@ -28,6 +28,23 @@ export function registerUser(message: RawData, ws: WebSocket, userId: string) {
     }
   }
 
+  if (existingUser) {
+    if (existingUser.name === userName && existingUser.password === password) {
+      const outUserData = {
+        name: userName,
+        index: userId,
+        error: true,
+        errorText: 'User active now',
+      };
+
+      const outUserJson = JSON.stringify(outUserData);
+      const outMassageData = { ...jsonObject, data: outUserJson };
+      const outMassageDataJSON = JSON.stringify(outMassageData);
+      ws.send(outMassageDataJSON);
+      return;
+    }
+  }
+
   const newUser: IUser = {
     name: userName,
     index: userId,
