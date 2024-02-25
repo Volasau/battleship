@@ -6,6 +6,7 @@ import { IClients, IExtendedWebSocket, IShip } from '../interface/interface';
 import { updateRooms } from '../app/updateRooms';
 import { updateViewRooms } from '../app/updateViewRooms';
 import { createNewRoom } from '../app/createRoom';
+import { updateWinners } from '../app/updateWinners';
 
 const wsServer = new WebSocketServer({ port: 3000 });
 
@@ -27,13 +28,12 @@ wsServer.on('connection', (ws) => {
     switch (request.type) {
       case 'reg':
         registerUser(message, ws, userId);
-        ws.send(
-          JSON.stringify({
-            type: 'update_winners',
-            data: JSON.stringify([]),
-            id: 0,
-          })
-        );
+
+        CLIENTS.forEach((clientObj) => {
+          clientObj.client.forEach((client) => {
+            client.send(updateWinners());
+          });
+        });
 
         CLIENTS.forEach((clientObj) => {
           clientObj.client.forEach((client) => {
@@ -80,7 +80,6 @@ wsServer.on('connection', (ws) => {
           }),
           id: 0,
         });
-
         ws.send(addUserToRoom);
         break;
 
