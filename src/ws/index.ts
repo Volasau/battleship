@@ -1,7 +1,8 @@
 import { WebSocketServer } from 'ws';
 import { randomUUID } from 'crypto';
 import { registerUser } from '../app/registerUser';
-import { ROOMS, USERS } from '../data/data';
+import { ROOMS, USERS, SHIPS } from '../data/data';
+import { IShip } from '../interface/interface';
 
 const wsServer = new WebSocketServer({ port: 3000 });
 
@@ -84,6 +85,37 @@ wsServer.on('connection', (ws) => {
         });
 
         ws.send(addUserToRoom);
+        break;
+
+      case 'add_ships':
+        const shipsInfo = JSON.parse(String(request.data));
+        shipsInfo.ships.forEach((item: IShip) => {
+          SHIPS.push(item);
+        });
+
+        console.log('add ships');
+        const startGame = JSON.stringify({
+          type: 'start_game',
+          data: JSON.stringify({
+            ships: SHIPS,
+            currentPlayerIndex: shipsInfo.indexPlayer,
+          }),
+          id: 0,
+        });
+
+        ws.send(startGame);
+
+        const turnUser = JSON.stringify({
+          type: 'turn',
+          data: JSON.stringify({
+            currentPlayer: USERS[0].index,
+          }),
+          id: 0,
+        });
+
+        ws.send(turnUser);
+        console.log('add_SHIPS');
+
         break;
       default:
         console.log('Test');
