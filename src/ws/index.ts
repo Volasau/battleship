@@ -117,4 +117,19 @@ wsServer.on('connection', (ws) => {
         console.log('Test');
     }
   });
+
+  ws.on('close', () => {
+    const index = CLIENTS.findIndex((clientObj) =>
+      clientObj.client.includes(socket)
+    );
+    if (index !== -1) {
+      CLIENTS.splice(index, 1);
+    }
+    const userIndex = USERS.findIndex((user) => user.index === userId);
+    if (userIndex !== -1) {
+      USERS.splice(userIndex, 1);
+
+      console.log(USERS);
+    }
+  });
 });
