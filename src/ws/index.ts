@@ -10,145 +10,136 @@ import { updateWinners } from '../app/updateWinners';
 
 const wsServer = new WebSocketServer({ port: 3000 });
 
-wsServer.on('connection', (ws) => {
-  const userId = randomUUID();
-  console.log('New connected', userId);
+function startServerWebSocket() {
+  wsServer.on('connection', (ws) => {
+    const userId = randomUUID();
+    console.log('New connected', userId);
 
-  const socket: IExtendedWebSocket = ws as IExtendedWebSocket;
-  socket.id = userId;
-  const clientObj: IClients = { client: [socket] };
-  CLIENTS.push(clientObj);
+    const socket: IExtendedWebSocket = ws as IExtendedWebSocket;
+    socket.id = userId;
+    const clientObj: IClients = { client: [socket] };
+    CLIENTS.push(clientObj);
 
-  console.log(CLIENTS);
+    ws.on('message', (message) => {
+      const request = JSON.parse(String(message));
 
-  ws.on('message', (message) => {
-    const request = JSON.parse(String(message));
-    console.log(request);
+      switch (request.type) {
+        case 'reg':
+          registerUser(message, ws, userId);
 
-    switch (request.type) {
-      case 'reg':
-        registerUser(message, ws, userId);
-
-        CLIENTS.forEach((clientObj) => {
-          clientObj.client.forEach((client) => {
-            client.send(updateWinners());
+          CLIENTS.forEach((clientObj) => {
+            clientObj.client.forEach((client) => {
+              client.send(updateWinners());
+            });
           });
-        });
 
-        CLIENTS.forEach((clientObj) => {
-          clientObj.client.forEach((client) => {
-            client.send(updateRooms());
+          CLIENTS.forEach((clientObj) => {
+            clientObj.client.forEach((client) => {
+              client.send(updateRooms());
+            });
           });
-        });
+          break;
 
-        break;
+        case 'create_room':
+          createNewRoom(socket);
+          updateViewRooms();
+          break;
 
-      case 'create_room':
-        console.log('room');
-        createNewRoom(socket);
-        updateViewRooms();
-        break;
+        case 'add_user_to_room':
+          const roomInfo = JSON.parse(String(request.data));
+          console.log(roomInfo);
+          const roomId = roomInfo.indexRoom;
+          console.log(roomId);
+          const room = ROOMS.find((item) => item.roomId === roomId);
+          room?.roomUsers.push({
+            name: USERS[0].name,
+            index: USERS[0].index,
+          });
 
-      case 'add_user_to_room':
-        const roomInfo = JSON.parse(String(request.data));
-        console.log(roomInfo);
-        const roomId = roomInfo.indexRoom;
-        console.log(roomId);
-        const room = ROOMS.find((item) => item.roomId === roomId);
-        room?.roomUsers.push({
-          name: USERS[0].name,
-          index: USERS[0].index,
-        });
+          CLIENTS.forEach((clientObj) => {
+            clientObj.client.forEach((client) => {
+              client.send(updateRooms());
+            });
+          });
+          const addUserToRoom = JSON.stringify({
+            type: 'create_game',
+            data: JSON.stringify({
+              idGame: roomId,
+              idPlayer: userId,
+            }),
+            id: 0,
+          });
+          ws.send(addUserToRoom);
+          break;
 
-        const updateUserInRoom = JSON.stringify({
-          type: 'update_room',
-          data: JSON.stringify([
-            {
-              roomId: roomId,
-              roomUsers: room?.roomUsers,
-            },
-          ]),
-          id: 0,
-        });
-        ws.send(updateUserInRoom);
+        case 'add_ships':
+          const shipsInfo = JSON.parse(String(request.data));
+          shipsInfo.ships.forEach((item: IShip) => {
+            SHIPS.push(item);
+          });
 
-        const addUserToRoom = JSON.stringify({
-          type: 'create_game',
-          data: JSON.stringify({
-            idGame: roomId,
-            idPlayer: userId,
-          }),
-          id: 0,
-        });
-        ws.send(addUserToRoom);
-        break;
+          const startGame = JSON.stringify({
+            type: 'start_game',
+            data: JSON.stringify({
+              ships: SHIPS,
+              currentPlayerIndex: shipsInfo.indexPlayer,
+            }),
+            id: 0,
+          });
 
-      case 'add_ships':
-        const shipsInfo = JSON.parse(String(request.data));
-        shipsInfo.ships.forEach((item: IShip) => {
-          SHIPS.push(item);
-        });
+          ws.send(startGame);
 
-        const startGame = JSON.stringify({
-          type: 'start_game',
-          data: JSON.stringify({
-            ships: SHIPS,
-            currentPlayerIndex: shipsInfo.indexPlayer,
-          }),
-          id: 0,
-        });
+          const turnUser = JSON.stringify({
+            type: 'turn',
+            data: JSON.stringify({
+              currentPlayer: USERS[0].index,
+            }),
+            id: 0,
+          });
 
-        ws.send(startGame);
+          ws.send(turnUser);
+          break;
 
-        const turnUser = JSON.stringify({
-          type: 'turn',
-          data: JSON.stringify({
-            currentPlayer: USERS[0].index,
-          }),
-          id: 0,
-        });
-
-        ws.send(turnUser);
-
-        break;
-
-      case 'attack':
-        console.log('Fire');
-        break;
-      default:
-        console.log('Test');
-    }
-  });
-
-  ws.on('close', () => {
-    const index = CLIENTS.findIndex((clientObj) =>
-      clientObj.client.includes(socket)
-    );
-    if (index !== -1) {
-      CLIENTS.splice(index, 1);
-    }
-    console.log(`User ${socket.id} exited`);
-
-    const userIndex = USERS.findIndex((user) => user.index === userId);
-    if (userIndex !== -1) {
-      USERS[userIndex].index = null;
-    }
-
-    const roomIndexesToDelete: number[] = [];
-    ROOMS.forEach((room, index) => {
-      if (room.roomUsers.some((user) => user.index === userId)) {
-        roomIndexesToDelete.push(index);
+        case 'attack':
+          console.log('Fire');
+          break;
+        default:
+          console.log('Sorry');
       }
     });
 
-    roomIndexesToDelete.reverse().forEach((index) => {
-      ROOMS.splice(index, 1);
-    });
+    ws.on('close', () => {
+      const index = CLIENTS.findIndex((clientObj) =>
+        clientObj.client.includes(socket)
+      );
+      if (index !== -1) {
+        CLIENTS.splice(index, 1);
+      }
+      console.log(`User ${socket.id} exited`);
 
-    CLIENTS.forEach((clientObj) => {
-      clientObj.client.forEach((client) => {
-        client.send(updateRooms());
+      const userIndex = USERS.findIndex((user) => user.index === userId);
+      if (userIndex !== -1) {
+        USERS[userIndex].index = null;
+      }
+
+      const roomIndexesToDelete: number[] = [];
+      ROOMS.forEach((room, index) => {
+        if (room.roomUsers.some((user) => user.index === userId)) {
+          roomIndexesToDelete.push(index);
+        }
+      });
+
+      roomIndexesToDelete.reverse().forEach((index) => {
+        ROOMS.splice(index, 1);
+      });
+
+      CLIENTS.forEach((clientObj) => {
+        clientObj.client.forEach((client) => {
+          client.send(updateRooms());
+        });
       });
     });
   });
-});
+}
+
+export { startServerWebSocket };
