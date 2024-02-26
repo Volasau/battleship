@@ -89,7 +89,6 @@ wsServer.on('connection', (ws) => {
           SHIPS.push(item);
         });
 
-        console.log('add ships');
         const startGame = JSON.stringify({
           type: 'start_game',
           data: JSON.stringify({
@@ -110,8 +109,11 @@ wsServer.on('connection', (ws) => {
         });
 
         ws.send(turnUser);
-        console.log('add_SHIPS');
 
+        break;
+
+      case 'attack':
+        console.log('Fire');
         break;
       default:
         console.log('Test');
@@ -125,11 +127,28 @@ wsServer.on('connection', (ws) => {
     if (index !== -1) {
       CLIENTS.splice(index, 1);
     }
+    console.log(`User ${socket.id} exited`);
+
     const userIndex = USERS.findIndex((user) => user.index === userId);
     if (userIndex !== -1) {
-      USERS.splice(userIndex, 1);
-
-      console.log(USERS);
+      USERS[userIndex].index = null;
     }
+
+    const roomIndexesToDelete: number[] = [];
+    ROOMS.forEach((room, index) => {
+      if (room.roomUsers.some((user) => user.index === userId)) {
+        roomIndexesToDelete.push(index);
+      }
+    });
+
+    roomIndexesToDelete.reverse().forEach((index) => {
+      ROOMS.splice(index, 1);
+    });
+
+    CLIENTS.forEach((clientObj) => {
+      clientObj.client.forEach((client) => {
+        client.send(updateRooms());
+      });
+    });
   });
 });

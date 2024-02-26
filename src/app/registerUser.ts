@@ -17,7 +17,7 @@ export function registerUser(message: RawData, ws: WebSocket, userId: string) {
         name: userName,
         index: userId,
         error: true,
-        errorText: 'Invalide password',
+        errorText: 'Invalid password',
       };
 
       const outUserJson = JSON.stringify(outUserData);
@@ -26,10 +26,11 @@ export function registerUser(message: RawData, ws: WebSocket, userId: string) {
       ws.send(outMassageDataJSON);
       return;
     }
-  }
 
-  if (existingUser) {
-    if (existingUser.name === userName && existingUser.password === password) {
+    if (existingUser.index === null) {
+      existingUser.index = userId;
+      console.log(`New index ${userId} for user ${userName}.`);
+    } else {
       const outUserData = {
         name: userName,
         index: userId,
@@ -43,17 +44,17 @@ export function registerUser(message: RawData, ws: WebSocket, userId: string) {
       ws.send(outMassageDataJSON);
       return;
     }
+  } else {
+    const newUser: IUser = {
+      name: userName,
+      index: userId,
+      wins: 0,
+      password: password,
+    };
+
+    USERS.push(newUser);
+    console.log(USERS);
   }
-
-  const newUser: IUser = {
-    name: userName,
-    index: userId,
-    wins: 0,
-    password: password,
-  };
-
-  USERS.push(newUser);
-  console.log(USERS);
 
   const outUserData = {
     name: userName,

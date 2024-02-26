@@ -4,12 +4,12 @@ export interface IUser {
   name: string;
   password: string;
   wins: number;
-  index: string;
+  index: string | null;
 }
 
 export interface IRoomUser {
   name: string;
-  index: string;
+  index: string | null;
 }
 
 export interface IRoom {
