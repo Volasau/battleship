@@ -47,9 +47,7 @@ function startServerWebSocket() {
 
         case 'add_user_to_room':
           const roomInfo = JSON.parse(String(request.data));
-          console.log(roomInfo);
           const roomId = roomInfo.indexRoom;
-          console.log(roomId);
           const room = ROOMS.find((item) => item.roomId === roomId);
           room?.roomUsers.push({
             name: USERS[0].name,

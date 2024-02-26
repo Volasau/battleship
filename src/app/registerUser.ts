@@ -53,7 +53,6 @@ export function registerUser(message: RawData, ws: WebSocket, userId: string) {
     };
 
     USERS.push(newUser);
-    console.log(USERS);
   }
 
   const outUserData = {
